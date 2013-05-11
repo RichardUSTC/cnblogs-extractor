@@ -12,6 +12,7 @@ import time
 import codecs
 
 outputType = "markdown"
+categoriesList = []
 
 class Post(object):
     blogNumber=0
@@ -39,6 +40,8 @@ class Post(object):
         with codecs.open(outputFileName, "w", "utf-8") as writer:
             outputMarkdownHeader(self.title, self.date, self.author, writer)
             outputMarkdownBody(self.content, writer)
+        mtime = time.mktime(self.date)
+        os.utime(outputFileName, (mtime, mtime))
 
 
 def outputHTMLHeader(title, author, writer):
@@ -65,10 +68,41 @@ def outputMarkdownHeader(title, date, author, writer):
     writer.write("date: %s\n" % time.strftime("%Y-%m-%d %H:%m"))
     writer.write("comments: true\n")
     writer.write("author: %s\n" % author)
-    writer.write("categories: Other\n")
+    category = inputCategory(title)
+    writer.write("categories: %s\n" % category)
     writer.write("---\n")
+
 def outputMarkdownBody(content, writer):
     writer.write("%s" %content)
+
+def inputCategory(title):
+    optionNumber = 0
+    print "------"
+    for category in categoriesList:
+        print "%d. %s" % (optionNumber, category)
+        optionNumber +=1
+    print "Choose one category or input a new one for\n\t%s" % title
+    print "Note: you'd better use only alphabet charaters for category name."
+    while True:
+        _input= raw_input()
+        addNewCategory = True
+        if _input.isdigit():
+            number = int(_input)
+            if 0 <= number < len(categoriesList):
+                categoryName = categoriesList[number]
+                addNewCategory = False
+            else:
+                categoryName = _input
+        else:
+            categoryName = _input
+        print "You choose: %s" % categoryName
+        yesOrNo = raw_input("Is this correct[y/N] [defaut: y]?")
+        if yesOrNo == 'n' or yesOrNo == 'N':
+            print "Choose once again:"
+            continue
+        if addNewCategory:
+            categoriesList.append(categoryName)
+        return categoryName
 
 def checkXMLFile(filePath):
     '''Check the input file'''
