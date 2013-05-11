@@ -4,13 +4,17 @@
     This is a script to extract blogs backed up from cnblogs.com to html files
 '''
 import sys
+import getopt
 import xml.dom.minidom as minidom
 import os
 import os.path
 import time
 import codecs
 
+outputType = "markdown"
+
 class Post(object):
+    blogNumber=0
     def setTitle(self, title):
         self.title = title
     def setAuthor(self, author):
@@ -25,6 +29,17 @@ class Post(object):
         with codecs.open("output/"+self.title+".html", "w", "utf-8") as writer:
             outputHTMLHeader(self.title, self.author, writer)
             outputHTMLBody(self.title, self.date, self.content, writer)
+
+    def outputMarkdown(self):
+        if not os.path.exists("output"):
+            os.mkdir("output")
+        shortDate = time.strftime("%Y-%m-%d", self.date)
+        outputFileName = "output/%s-blog-%d.markdown" % (shortDate, Post.blogNumber)
+        Post.blogNumber += 1
+        with codecs.open(outputFileName, "w", "utf-8") as writer:
+            outputMarkdownHeader(self.title, self.date, self.author, writer)
+            outputMarkdownBody(self.content, writer)
+
 
 def outputHTMLHeader(title, author, writer):
     writer.write('<!DOCTYPE html>')
@@ -43,6 +58,18 @@ def outputHTMLBody(title, date, content, writer):
     writer.write('<div class="content">%s</div>' % (content))
     writer.write('</body></html>')
 
+def outputMarkdownHeader(title, date, author, writer):
+    writer.write("---\n")
+    writer.write("layout: post\n")
+    writer.write("title: %s\n" % title)
+    writer.write("date: %s\n" % time.strftime("%Y-%m-%d %H:%m"))
+    writer.write("comments: true\n")
+    writer.write("author: %s\n" % author)
+    writer.write("categories: Other\n")
+    writer.write("---\n")
+def outputMarkdownBody(content, writer):
+    writer.write("%s" %content)
+
 def checkXMLFile(filePath):
     '''Check the input file'''
     if os.path.exists(filePath):
@@ -57,7 +84,8 @@ def checkXMLFile(filePath):
 
 def usage():
     ''' Print the usage of the script'''
-    print "Usage: %s <input-xml-file>" % (sys.argv[0])
+    print "Usage: %s [-h] [--help] [-o html/markdown] [--output html/markdown]\
+            input-xml-file" % (sys.argv[0])
 
 def parse(filePath):
     ''' Parse the xml file'''
@@ -80,7 +108,10 @@ def parseItem(item):
     post.setDate(date)
     content = getItemMemberText(item, "description")
     post.setContent(content)
-    post.outputHTML()
+    if outputType == "markdown":
+        post.outputMarkdown()
+    else:
+        post.outputHTML()
 
 def getItemMemberText(item, memberName):
     member = item.getElementsByTagName(memberName)[0]
@@ -95,10 +126,36 @@ def getText(nodeList):
     return "".join(rc)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    inputFileName = ""
+    if len(sys.argv) < 2:
         usage()
     else:
         try:
-            parse(sys.argv[1])
+            opts, args = getopt.getopt(sys.argv[1:], "ho:", ["help","output"])
+            if len(args) != 1:
+                usage()
+                sys.exit(-1)
+            else:
+                inputFileName = args[0]
+            for opt, arg in opts:
+                if opt in ("-h", "--help"):
+                    usage()
+                    sys.exit(0)
+                elif opt in ("-o", "--output"):
+                    if arg=="html" or arg == "markdown":
+                        outputType = arg
+                    else:
+                        usage()
+                        sys.exit(-1)
+                else:
+                    usage()
+                    sys.exit(-1)
+
+        except getopt.GetoptError:
+            usage()
+            sys.exit(-1)
+        try:
+            parse(inputFileName)
         except Exception, e:
             print e
+            sys.exit(-2)
