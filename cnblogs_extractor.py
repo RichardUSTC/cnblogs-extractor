@@ -65,7 +65,7 @@ def outputMarkdownHeader(title, date, author, writer):
     writer.write("---\n")
     writer.write("layout: post\n")
     writer.write("title: %s\n" % title)
-    writer.write("date: %s\n" % time.strftime("%Y-%m-%d %H:%m"))
+    writer.write("date: %s\n" % time.strftime("%Y-%m-%d %H:%m", date))
     writer.write("comments: true\n")
     writer.write("author: %s\n" % author)
     category = inputCategory(title)
